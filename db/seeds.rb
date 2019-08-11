@@ -27,3 +27,60 @@
 
 # Enrollment.create({user_id: User.all.first.id, event_id: Event.second.id, rsvp: 'yes'})
 # Enrollment.create({user_id: User.all.first.id, event_id: Event.third.id, rsvp: 'yes'})
+
+# Upload using files
+
+require 'csv'
+
+# Seeding users
+USER_SEED_PATH = Rails.root.to_s + '/db/seeds/users.csv'
+
+CSV.foreach(USER_SEED_PATH, headers: true) do |row|
+  u = User.new
+  u.username = row['username']
+  u.email = row['email']
+  u.phone = row['phone']
+
+  u.save!
+end
+
+
+# Seeding events
+EVENT_SEED_PATH = Rails.root.to_s + '/db/seeds/events.csv'
+creator = User.first
+
+CSV.foreach(EVENT_SEED_PATH, headers: true) do |row|
+  e = Event.new
+  e.title = row['title']
+  e.start_time = DateTime.parse(row['starttime'])
+  e.end_time = DateTime.parse(row['endtime'])
+  e.description = row['description']
+  e.all_day = row['allday'] == 'true' ? true : false
+  e.creator =  creator
+
+  e.save!
+
+  # Seeding enrollments
+
+  ## TODO
+  # Refactor - move to EnrollSeed class
+  raw_data = row['users#rsvp']
+  next if raw_data.blank?
+
+  user_and_status = raw_data.split(';')
+  uers = user_and_status.map do |raw_us|
+    us = raw_us.split('#')
+    { username: us.first, rsvp: us.second }
+  end
+
+  uers.each do |uer|
+    ur = User.find_by(username: uer[:username])
+
+    en = Enrollment.new
+    en.user = ur
+    en.event = e
+    en.rsvp = uer[:rsvp]
+    en.save!
+  end
+
+end
