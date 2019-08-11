@@ -1,7 +1,6 @@
 class Enrollment < ApplicationRecord
   attribute :rsvp, :string, default: 'no'
 
-
   belongs_to :user
   belongs_to :event
 
@@ -14,7 +13,7 @@ class Enrollment < ApplicationRecord
         user_id: self.user_id,
         event_id: overlapping_enrollments.map(&:id)
       )
-      .update_all(rsvp: false)
+      .update_all(rsvp: 'no')
   end
 
   private
