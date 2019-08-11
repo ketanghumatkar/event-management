@@ -21,3 +21,5 @@
 /yarn-error.log
 
 .byebug_history
+db/users.csv
+db/events.csv

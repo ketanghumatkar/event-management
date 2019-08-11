@@ -31,56 +31,90 @@
 # Upload using files
 
 require 'csv'
+require 'fileutils'
+require_relative './csv_split'
 
-# Seeding users
-USER_SEED_PATH = Rails.root.to_s + '/db/seeds/users.csv'
+####
+#
+#  Seeding users
+#
+####
+USER_SEED_PATH = Rails.root.to_s + '/db/users.csv'
+SPLIT_PATH = Rails.root.to_s + '/db/split_files'
 
-CSV.foreach(USER_SEED_PATH, headers: true) do |row|
-  u = User.new
-  u.username = row['username']
-  u.email = row['email']
-  u.phone = row['phone']
+# Divide large data csv in multiple smaller onces
+CsvSplit.split(USER_SEED_PATH)
 
-  u.save!
+# Load each splited csv in database
+Dir.glob("#{SPLIT_PATH}/*.csv") do |csv_name|
+
+  CSV.foreach(csv_name, headers: true) do |row|
+    u = User.new
+    u.username = row['username']
+    u.email = row['email']
+    u.phone = row['phone']
+
+    u.save!
+  end
 end
 
+CsvSplit.flush_dir(SPLIT_PATH)
 
-# Seeding events
-EVENT_SEED_PATH = Rails.root.to_s + '/db/seeds/events.csv'
+
+
+
+
+
+####
+#
+#  Seeding events and enrollments
+#
+####
+
+EVENT_SEED_PATH = Rails.root.to_s + '/db/events.csv'
 creator = User.first
 
-CSV.foreach(EVENT_SEED_PATH, headers: true) do |row|
-  e = Event.new
-  e.title = row['title']
-  e.start_time = DateTime.parse(row['starttime'])
-  e.end_time = DateTime.parse(row['endtime'])
-  e.description = row['description']
-  e.all_day = row['allday'] == 'true' ? true : false
-  e.creator =  creator
+# Divide large data csv in multiple smaller onces
+CsvSplit.split(EVENT_SEED_PATH)
 
-  e.save!
+# Load each splited csv in database
+Dir.glob("#{SPLIT_PATH}/*.csv") do |csv_name|
 
-  # Seeding enrollments
+  CSV.foreach(EVENT_SEED_PATH, headers: true) do |row|
+    e = Event.new
+    e.title = row['title']
+    e.start_time = DateTime.parse(row['starttime'])
+    e.end_time = DateTime.parse(row['endtime'])
+    e.description = row['description']
+    e.all_day = row['allday'] == 'true' ? true : false
+    e.creator =  creator
 
-  ## TODO
-  # Refactor - move to EnrollSeed class
-  raw_data = row['users#rsvp']
-  next if raw_data.blank?
+    e.save!
 
-  user_and_status = raw_data.split(';')
-  uers = user_and_status.map do |raw_us|
-    us = raw_us.split('#')
-    { username: us.first, rsvp: us.second }
+    # Seeding enrollments
+
+    ## TODO
+    # Refactor - move to EnrollSeed class
+    raw_data = row['users#rsvp']
+    next if raw_data.blank?
+
+    user_and_status = raw_data.split(';')
+    uers = user_and_status.map do |raw_us|
+      us = raw_us.split('#')
+      { username: us.first, rsvp: us.second }
+    end
+
+    uers.each do |uer|
+      ur = User.find_by(username: uer[:username])
+
+      en = Enrollment.new
+      en.user = ur
+      en.event = e
+      en.rsvp = uer[:rsvp]
+      en.save!
+    end
+
   end
-
-  uers.each do |uer|
-    ur = User.find_by(username: uer[:username])
-
-    en = Enrollment.new
-    en.user = ur
-    en.event = e
-    en.rsvp = uer[:rsvp]
-    en.save!
-  end
-
 end
+
+CsvSplit.flush_dir(SPLIT_PATH)
