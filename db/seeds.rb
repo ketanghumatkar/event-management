@@ -82,7 +82,7 @@ CsvSplit.split(EVENT_SEED_PATH)
 # Load each splited csv in database
 Dir.glob("#{SPLIT_PATH}/*.csv") do |csv_name|
 
-  CSV.foreach(EVENT_SEED_PATH, headers: true) do |row|
+  CSV.foreach(csv_name, headers: true) do |row|
     e = Event.new
     e.title = row['title']
     e.start_time = DateTime.parse(row['starttime'])
