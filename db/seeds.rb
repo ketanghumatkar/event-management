@@ -60,6 +60,8 @@ end
 
 CsvSplit.flush_dir(SPLIT_PATH)
 
+puts "-- User data seeded"
+
 
 
 
@@ -118,3 +120,5 @@ Dir.glob("#{SPLIT_PATH}/*.csv") do |csv_name|
 end
 
 CsvSplit.flush_dir(SPLIT_PATH)
+puts "-- Event data seeded"
+puts "-- Enrollment data seeded"
